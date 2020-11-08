@@ -39,15 +39,19 @@ export default ({ onSuccess }) => {
             }
           );
 
-          onSuccess(failed.map((el) => ({
-            name: el[0],
-            address: el[1],
-            subDistrict: el[2],
-            district: el[3],
-            province: el[4],
-            phone: el[5],
-            zip: el[6]
-          })));
+          if (failed.length) {
+            onSuccess(failed.map((el) => ({
+              name: el[0],
+              address: el[1],
+              subDistrict: el[2],
+              district: el[3],
+              province: el[4],
+              phone: el[5],
+              zip: el[6]
+            })));
+          } else {
+            setIsSubmitting(false);
+          }
         })
         .catch((err) => {
           setIsSubmitting(false);
