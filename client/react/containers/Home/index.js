@@ -22,29 +22,61 @@ const useStyles = makeStyles((theme) => ({
 export default () => {
   const classes = useStyles();
   const [activeStep, setActiveStep] = React.useState(0);
+  const [rows, setRows] = React.useState([]);
   const steps = ['Upload File', 'Confirmation', 'Send Request'];
 
-  const handleNext = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep + 1);
+  const onFirstStepSuccess = (data) => {
+    setRows(data);
+    setActiveStep(1);
+  }
+
+  const onSecondStepSuccess = () => {
+    setActiveStep(2);
   };
+
+  const onThirdStepSuccess = (rows) => {
+    setRows(rows.map((el) => ({
+      name: el[0],
+      address: el[1],
+      subDistrict: el[2],
+      district: el[3],
+      province: el[4],
+      phone: el[5],
+      zip: el[6]
+    })));
+    setActiveStep(rows.length ? 1 : 0);
+  }
 
   const handleBack = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
 
+  const onRowsChange = (data) => {
+    setRows(data);
+  }
+
   const getStepContent = (step) => {
     switch (step) {
       case 0:
         return (
-          <FirstStep onSuccess={handleNext} />
+          <FirstStep onSuccess={onFirstStepSuccess} />
         );
       case 1:
         return (
-          <SecondStep onBack={handleBack} onNext={handleNext} />
+          <SecondStep
+            rows={rows}
+            onBack={handleBack}
+            onNext={onSecondStepSuccess}
+            onDataChange={onRowsChange}
+          />
         );
       case 2:
         return (
-          <ThirdStep onBack={handleBack} onConfirm={console.log} />
+          <ThirdStep
+            rows={rows}
+            onBack={handleBack}
+            onSuccess={onThirdStepSuccess}
+          />
         );
       default:
         return 'Unknown step';

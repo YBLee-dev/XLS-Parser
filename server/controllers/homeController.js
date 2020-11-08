@@ -58,7 +58,7 @@ const callRequest = async function (reqArray) {
     if (reqResult) {
       result.success ++;
     } else {
-      result.failed.push(reqResult[key]);
+      result.failed.push(reqArray[key]);
     }
   }
 
@@ -67,8 +67,8 @@ const callRequest = async function (reqArray) {
 
 module.exports = {
   handleManualSendRequest: async function (req, res) {
-    const reqArray = req.body;
-    const result = await callRequest(reqArray);
+    const { data } = req.body;
+    const result = await callRequest(data);
 
     return res.status(200).json({
       success: true,

@@ -19,13 +19,25 @@ const useStyles = makeStyles(() => ({
   }
 }));
 
-export default ({ onBack, onNext }) => {
+export default ({ rows, onBack, onNext, onDataChange }) => {
   const classes = useStyles();
+
+  const onRowChange = (data, idx) => {
+    const newData = [ ...rows ];
+    newData[idx] = data;
+
+    onDataChange(newData);
+  };
 
   return (
     <div className={classes.container}>
-      <Form />
-      <Form />
+      {rows.map((el, idx) => (
+        <Form
+          key={idx}
+          data={el}
+          onDataChange={(data) => onRowChange(data, idx)}
+        />
+      ))}
       <div className={classes.btnContainer}>
         <Button className={classes.button} variant="contained" color="secondary" onClick={onBack}>
           Back
