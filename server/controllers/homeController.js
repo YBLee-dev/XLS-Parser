@@ -31,7 +31,51 @@ const xlsx = require('xlsx');
 //   }
 // }
 
+const sendRequest = function (RequestTxt) {
+  const url = 'https://iwjkvg2m94.execute-api.ap-southeast-1.amazonaws.com/dev/parse-address';
+  return axios.get(url, {
+    headers: {
+      'Authorization': process.env.AuthToken,
+      'Accept': 'application/json'
+    },
+    params: {
+     text: RequestTxt
+   }
+  }).then(async (res) => {
+   return true;
+  }).catch((err) => {
+   console.error(err);
+   return false;
+  });
+}
+
+const callRequest = async function (reqArray) {
+  let result = {"success": 0, "failed": []};
+  for (const key in reqArray) {
+    const reqText = reqArray[key].join('\n');
+    const reqResult = await sendRequest(reqText);
+
+    if (reqResult) {
+      result.success ++;
+    } else {
+      result.failed.push(reqResult[key]);
+    }
+  }
+
+  return result;
+}
+
 module.exports = {
+  handleManualSendRequest: async function (req, res) {
+    const reqArray = req.body;
+    const result = await callRequest(reqArray);
+
+    return res.status(200).json({
+      success: true,
+      data: result
+    });
+  },
+
   handleFileUpload: function (req, res) {
     const dateObj = new Date();
     const year = dateObj.getFullYear();
@@ -62,9 +106,21 @@ module.exports = {
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
         const data = xlsx.utils.sheet_to_json(ws);
-        console.log("ROWS: ", data);
+
+        let parsedArray = [];
+        for (const key in data) {
+          if (key === '0') {
+            parsedArray[key] = Object.keys(data[key]);
+          }
+          parsedArray.push(Object.values(data[key]));
+        }
+
+        // send Request
+        const result = await callRequest(parsedArray)
+
         return res.status(200).json({
           success: true,
+          data: result
         });
       }).catch((err) => {
         console.error(err);
