@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CircularProgress } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
+import axios from 'axios';
 
 import { Dropzone } from "../../components";
 
@@ -21,9 +22,18 @@ export default ({ onSuccess }) => {
   const onChange = (files) => {
     if (files.length > 0) {
       setIsSubmitting(true);
-      setTimeout(() => {
-        onSuccess([]);
-      }, 1500);
+      const formData = new FormData();
+      formData.append("", files[0]);
+
+      axios.post('/api/v1/get-parse', formData)
+        .then((res) => {
+          console.log(res)
+        })
+        .catch((err) => {
+          setIsSubmitting(false);
+          window.alert("Failed to upload file. Please try again later");
+          console.error(err);
+        });
     }
   }
 
