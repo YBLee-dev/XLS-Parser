@@ -7,46 +7,32 @@ const s3 = new AWS.S3({
   signatureVersion: 'v4',
   region: 'ap-southeast-1'           // Put you region
 });
-const axios = require("axios");
-const readXlsxFile = require('read-excel-file/node');
+const axios = require('axios');
+const xlsx = require('xlsx');
 
-async function getDownloadPresignedUrl(fileName) {
-  const params = {
-    Bucket: 'ems-excel-parser',
-    Key: fileName,
-    Expires: 600 * 5
-  };
-  try {
-    const url = await new Promise((resolve, reject) => {
-      s3.getSignedUrl('getObject', params, (err, url) => {
-        err ? reject(err) : resolve(url);
-      });
-    });
-    return url;
-  } catch (err) {
-    if (err) {
-      console.log(err)
-      return false;
-    }
-  }
-}
-
-async function parseXlsx(fileUrl) {
-  const rows = await readXlsxFile(fileUrl)
-  return rows;
-}
-
-async function getXlsParseResponse (fileName) {
-  //get download presideurl
-  let fileUrl = await getDownloadPresignedUrl(fileName);
-
-  console.log('got presigned fileUrl', fileUrl);
-
-  return await parseXlsx(fileUrl);
-}
+// async function getDownloadPresignedUrl(fileName) {
+//   const params = {
+//     Bucket: 'ems-excel-parser',
+//     Key: fileName,
+//     Expires: 600 * 5
+//   };
+//   try {
+//     const url = await new Promise((resolve, reject) => {
+//       s3.getSignedUrl('getObject', params, (err, url) => {
+//         err ? reject(err) : resolve(url);
+//       });
+//     });
+//     return url;
+//   } catch (err) {
+//     if (err) {
+//       console.log(err)
+//       return false;
+//     }
+//   }
+// }
 
 module.exports = {
-  getParsedRes: async function (req, res) {
+  handleFileUpload: function (req, res) {
     const dateObj = new Date();
     const year = dateObj.getFullYear();
     const month = dateObj.getMonth();
@@ -56,47 +42,34 @@ module.exports = {
     const second = dateObj.getSeconds();
     const now = `${year}-${month}-${day}_${hour}-${min}-${second}`;
     const fileName = now + '.xlsx';
-    console.log('seted fileName', fileName);
 
-    async function getSingedUrlforPut() {
-      const params = {
-        Bucket: 'ems-excel-parser',
-        Key: fileName,
-        Expires: 60 * 5
-      };
+    return s3.getSignedUrl('putObject', {
+      Bucket: 'ems-excel-parser',
+      Key: fileName,
+      Expires: 60 * 5,
+    }, (err, url) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ success: false, message: err });
+      }
 
-      try {
-        return await new Promise((resolve, reject) => {
-          s3.getSignedUrl('putObject', params, (err, url) => {
-            err ? reject(err) : resolve(url);
-          });
-        });
-      } catch (err) {
-        if (err) {
-          console.log(err);
-          return false;
+      return axios.put(url, req.file.buffer, {
+        headers: {
+          'Content-Type': 'application/octet-stream'
         }
-      }
-    }
-
-    const preSignedUrl = await getSingedUrlforPut();
-    console.log('got presinged url', preSignedUrl);
-    console.log('start upload s3 by presigned url');
-    await axios.put(preSignedUrl, req.body, {
-      headers: {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      }
-    }).then(async () => {
-      console.log('uploaded s3 by presigned url');
-
-      console.log("start parse")
-      const result = await getXlsParseResponse(fileName);
-      console.log("end parse");
-
-      return res.status(200).json({result: result});
-    }).catch((err) => {
-      console.error(err);
-      return res.status(500).json({success: false});
+      }).then(async () => {
+        const wb = xlsx.read(req.file.buffer, { type: "buffer" });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = xlsx.utils.sheet_to_json(ws);
+        console.log("ROWS: ", data);
+        return res.status(200).json({
+          success: true,
+        });
+      }).catch((err) => {
+        console.error(err);
+        return res.status(500).json({ success: false });
+      });
     });
   }
 };
