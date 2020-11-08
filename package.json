@@ -2,7 +2,7 @@
   "name": "functions",
   "description": "CrewPond App Build By Lee",
   "scripts": {
-    "build": "webpack --config webpack.config.js -p",
+    "build": "webpack --config webpack.config.js",
     "start": "npm-run-all --parallel watch:server watch:client",
     "start:production": "npm run build && node server",
     "watch:client": "webpack --config webpack.config.js --watch",
