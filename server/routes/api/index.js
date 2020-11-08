@@ -1,5 +1,6 @@
 const { homeController } = require("../../controllers");
 
+
 module.exports = (router) => {
-    router.get("/api/v1/home", homeController.getSuccessResponse);
+    router.post("/api/v1/get-parse", homeController.getParsedRes);
 };
