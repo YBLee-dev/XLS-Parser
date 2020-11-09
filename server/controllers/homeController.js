@@ -108,11 +108,11 @@ const parseAddress = function (text) {
   });
 }
 
-const callRequest = async function (reqArray) {
+const callRequest = async function (data) {
   let result = {"success": 0, "failed": []};
-  for (const key in reqArray) {
-    const name = reqArray[key][1];
-    const text = reqArray[key].join('\n');
+  for (const item of data) {
+    const name = item[1];
+    const text = item.join('\n');
     try {
       const orderData = await parseAddress(text);
 
@@ -123,10 +123,11 @@ const callRequest = async function (reqArray) {
         });
         result.success ++;
       } else {
-        result.failed.push(reqArray[key]);
+        result.failed.push(item);
       }
     } catch (e) {
-      result.failed.push(reqArray[key]);
+      console.error(e);
+      result.failed.push(item);
     }
   }
 
@@ -136,7 +137,28 @@ const callRequest = async function (reqArray) {
 module.exports = {
   handleManualSendRequest: async function (req, res) {
     const { data } = req.body;
-    const result = await callRequest(data);
+    const result = {"success": 0, "failed": []};
+
+    for (const item of data) {
+      try {
+        await sendOrderReq({
+          name: item.name,
+          address: {
+            address: item.address,
+            province: item.province,
+            district: item.district,
+            subDistrict: item.subDistrict,
+            zipcode: item.zip,
+          },
+          mobileNo: item.phone,
+          phoneNo: item.phone,
+        });
+        result.success ++;
+      } catch (e) {
+        console.error(e);
+        result.failed.push(item);
+      }
+    }
 
     return res.status(200).json({
       success: true,
