@@ -42,7 +42,9 @@ const sendRequest = function (RequestTxt) {
      text: RequestTxt
    }
   }).then(async (res) => {
-   return true;
+    console.log(res.data);
+    console.log("---------------------------------")
+    return true;
   }).catch((err) => {
    console.error(err);
    return false;
@@ -56,8 +58,6 @@ const callRequest = async function (reqArray) {
     const reqResult = await sendRequest(reqText);
 
     if (reqResult) {
-      console.log(reqText);
-      console.log("---------------------------------")
       result.success ++;
     } else {
       result.failed.push(reqArray[key]);
