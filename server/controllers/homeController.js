@@ -56,7 +56,6 @@ const sendOrderReq = function ({ name, address, mobileNo, phoneNo }) {
       },
     }
   ).then(() => {
-    console.log("sent");
     return true;
   }).catch((err) => {
     console.error(err);
@@ -116,11 +115,11 @@ const callRequest = async function (data) {
       const orderData = await parseAddress(text);
 
       if (orderData) {
-        await sendOrderReq({
-          name,
-          ...orderData
-        });
-        result.success ++;
+        if (await sendOrderReq({ name, ...orderData })) {
+          result.success ++;
+        } else {
+          result.failed.push(item);
+        }
       } else {
         result.failed.push(item);
       }
@@ -140,7 +139,7 @@ module.exports = {
 
     for (const item of data) {
       try {
-        await sendOrderReq({
+        const isSuccess = await sendOrderReq({
           name: item.name,
           address: {
             address: item.address,
@@ -152,7 +151,11 @@ module.exports = {
           mobileNo: item.phone,
           phoneNo: item.phone,
         });
-        result.success ++;
+        if (isSuccess) {
+          result.success ++;
+        } else {
+          result.failed.push(item);
+        }
       } catch (e) {
         console.error(e);
         result.failed.push(item);
