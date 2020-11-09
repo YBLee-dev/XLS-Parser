@@ -31,36 +31,103 @@ const xlsx = require('xlsx');
 //   }
 // }
 
-const sendRequest = function (RequestTxt) {
-  const url = 'https://iwjkvg2m94.execute-api.ap-southeast-1.amazonaws.com/dev/parse-address';
-  return axios.get(url, {
-    headers: {
-      'Authorization': process.env.AuthToken,
-      'Accept': 'application/json'
+const sendOrderReq = function ({ name, address, mobileNo, phoneNo }) {
+  console.log({ name, address, mobileNo, phoneNo });
+  return axios.post(
+    'https://tgb6wardbf.execute-api.ap-southeast-1.amazonaws.com/dev/v1/orders',
+    {
+      "shippingMethod": "thaipost",
+      "codAmount": "100",
+      "weight": "500",
+      "customer": {
+        "name": name,
+        "address": address,
+        "mobileNo": mobileNo,
+        "phoneNo": phoneNo,
+        "salesChannel": "facebook",
+        "email": ""
+      },
+      "shopId": "shop-f8576240-20c3-11eb-99b6-47f9099947ca1604731162212",
+      "remarks": ""
     },
-    params: {
-     text: RequestTxt
-   }
-  }).then(async (res) => {
-    console.log(res.data);
-    console.log("---------------------------------")
+    {
+      headers: {
+        'Authorization': `Bearer ${process.env.AuthToken}`,
+        'Accept': 'application/json'
+      },
+    }
+  ).then(() => {
+    console.log("sent");
     return true;
   }).catch((err) => {
-   console.error(err);
-   return false;
+    console.error(err);
+    return false;
   });
 }
 
-const callRequest = async function (reqArray) {
-  let result = {"success": 0, "failed": []};
-  for (const key in reqArray) {
-    const reqText = reqArray[key].join('\n');
-    const reqResult = await sendRequest(reqText);
+const parseAddress = function (text) {
+  return axios.get('https://iwjkvg2m94.execute-api.ap-southeast-1.amazonaws.com/dev/parse-address', {
+    headers: {
+      'Authorization': `Bearer ${process.env.AuthToken}`,
+      'Accept': 'application/json'
+    },
+    params: {
+     text
+   }
+  }).then(async ({ data }) => {
+    const address = {};
+    let mobileNo = '';
+    let phoneNo = '';
 
-    if (reqResult) {
-      result.success ++;
-    } else {
-      result.failed.push(reqArray[key]);
+    let valid = false;
+    if ((data['nameAddress'] !== '') && data['provinceMatched'] && data['districtMatched'] && data['subdistrictMatched']
+        && data['zipcodeMatched'] && (data['phone'] !== '')) {
+      valid = true;
+      address.address = data['nameAddress'].replace('\n', ' ');
+      address.province = data['provinceName'];
+      address.district = data['districtName'];
+      address.subDistrict = data['subdistrictName'];
+      address.zipcode = data['zipcode'];
+
+      mobileNo = data['phone'];
+      phoneNo = data['phone'];
+    }
+
+    if (!valid) {
+      return null;
+    }
+
+    return {
+      address,
+      mobileNo,
+      phoneNo
+    }
+  }).catch((err) => {
+   console.error(err);
+   return null;
+  });
+}
+
+const callRequest = async function (data) {
+  let result = {"success": 0, "failed": []};
+  for (const item of data) {
+    const name = item[1];
+    const text = item.join('\n');
+    try {
+      const orderData = await parseAddress(text);
+
+      if (orderData) {
+        await sendOrderReq({
+          name,
+          ...orderData
+        });
+        result.success ++;
+      } else {
+        result.failed.push(item);
+      }
+    } catch (e) {
+      console.error(e);
+      result.failed.push(item);
     }
   }
 
@@ -70,7 +137,28 @@ const callRequest = async function (reqArray) {
 module.exports = {
   handleManualSendRequest: async function (req, res) {
     const { data } = req.body;
-    const result = await callRequest(data);
+    const result = {"success": 0, "failed": []};
+
+    for (const item of data) {
+      try {
+        await sendOrderReq({
+          name: item.name,
+          address: {
+            address: item.address,
+            province: item.province,
+            district: item.district,
+            subDistrict: item.subDistrict,
+            zipcode: item.zip,
+          },
+          mobileNo: item.phone,
+          phoneNo: item.phone,
+        });
+        result.success ++;
+      } catch (e) {
+        console.error(e);
+        result.failed.push(item);
+      }
+    }
 
     return res.status(200).json({
       success: true,
@@ -80,13 +168,14 @@ module.exports = {
 
   handleFileUpload: function (req, res) {
     const dateObj = new Date();
-    const year = dateObj.getFullYear();
-    const month = dateObj.getMonth();
-    const day = dateObj.getDate();
-    const hour = dateObj.getHours();
-    const min = dateObj.getMinutes();
-    const second = dateObj.getSeconds();
-    const now = `${year}-${month}-${day}_${hour}-${min}-${second}`;
+    const year    = dateObj.getFullYear();
+    const month   = dateObj.getMonth();
+    const day     = dateObj.getDate();
+    const hour    = dateObj.getHours();
+    const min     = dateObj.getMinutes();
+    const second  = dateObj.getSeconds();
+
+    const now     = `${year}-${month}-${day}_${hour}-${min}-${second}`;
     const fileName = now + '.xlsx';
 
     return s3.getSignedUrl('putObject', {
