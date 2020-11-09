@@ -56,6 +56,8 @@ const callRequest = async function (reqArray) {
     const reqResult = await sendRequest(reqText);
 
     if (reqResult) {
+      console.log(reqText);
+      console.log("---------------------------------")
       result.success ++;
     } else {
       result.failed.push(reqArray[key]);
