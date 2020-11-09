@@ -27,7 +27,7 @@ export default ({ rows, onBack, onSuccess }) => {
   const onClickSend = () => {
     setIsSubmitting(true);
     axios.post('/api/v1/send-manual-req', {
-      data: rows.map((el) => Object.values(el))
+      data: rows
     })
       .then(({ data: { data } }) => {
         const { success, failed } = data;
