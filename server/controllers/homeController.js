@@ -32,7 +32,6 @@ const xlsx = require('xlsx');
 // }
 
 const sendOrderReq = function ({ name, address, mobileNo, phoneNo }) {
-  console.log({ name, address, mobileNo, phoneNo });
   return axios.post(
     'https://tgb6wardbf.execute-api.ap-southeast-1.amazonaws.com/dev/v1/orders',
     {
