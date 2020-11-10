@@ -41,13 +41,13 @@ export default ({ onSuccess }) => {
 
           if (failed.length) {
             onSuccess(failed.map((el) => ({
-              name: el[1],
-              address: el[2],
-              subDistrict: el[3],
-              district: el[4],
-              province: el[5],
-              phone: el[6],
-              zip: el[0]
+              name: el['name'],
+              address: el['nameAddress'],
+              subDistrict: el['subdistrictName'],
+              district: el['districtName'],
+              province: el['provinceName'],
+              phone: el['phone'],
+              zip: el['zipcode']
             })));
           } else {
             setIsSubmitting(false);
