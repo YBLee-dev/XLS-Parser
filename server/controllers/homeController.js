@@ -71,38 +71,27 @@ const parseAddress = function (text) {
     },
     params: {
      text
-   }
-  }).then(async ({ data }) => {
-    const address = {};
-    let mobileNo = '';
-    let phoneNo = '';
-
-    let valid = false;
-    if ((data['nameAddress'] !== '') && data['provinceMatched'] && data['districtMatched'] && data['subdistrictMatched']
-        && data['zipcodeMatched'] && (data['phone'] !== '')) {
-      valid = true;
-      address.address = data['nameAddress'].replace('\n', ' ');
-      address.province = data['provinceName'];
-      address.district = data['districtName'];
-      address.subDistrict = data['subdistrictName'];
-      address.zipcode = data['zipcode'];
-
-      mobileNo = data['phone'];
-      phoneNo = data['phone'];
     }
-
-    if (!valid) {
-      return null;
-    }
-
+  }).then(({ data }) => {
     return {
-      address,
-      mobileNo,
-      phoneNo
+      isValid: (data['nameAddress'] !== '') && data['provinceMatched'] && data['districtMatched']
+        && data['subdistrictMatched'] && data['zipcodeMatched'] && (data['phone'] !== ''),
+      data
     }
   }).catch((err) => {
-   console.error(err);
-   return null;
+    console.error(err);
+    return {
+      isValid: false,
+      data: {
+        inputText: "",
+        nameAddress: "",
+        subdistrictName: "",
+        districtName: "",
+        provinceName: "",
+        zipcode: "",
+        phone: ""
+      }
+    };
   });
 }
 
@@ -111,21 +100,33 @@ const callRequest = async function (data) {
   for (const item of data) {
     const name = item[1];
     const text = item.join('\n');
-    try {
-      const orderData = await parseAddress(text);
+    const orderData = await parseAddress(text);
 
-      if (orderData) {
-        if (await sendOrderReq({ name, ...orderData })) {
-          result.success ++;
-        } else {
-          result.failed.push(item);
-        }
+    if (orderData.isValid) {
+      if (await sendOrderReq({
+        name,
+        address: {
+          address: orderData.data['nameAddress'].replace('\n', ' '),
+          province: orderData.data['provinceName'],
+          district: orderData.data['districtName'],
+          subDistrict: orderData.data['subdistrictName'],
+          zipcode: orderData.data['zipcode'],
+        },
+        mobileNo: orderData.data['phone'],
+        phoneNo: orderData.data['phone'],
+      })) {
+        result.success ++;
       } else {
-        result.failed.push(item);
+        result.failed.push({
+          name,
+          ...orderData.data
+        });
       }
-    } catch (e) {
-      console.error(e);
-      result.failed.push(item);
+    } else {
+      result.failed.push({
+        name,
+        ...orderData.data
+      });
     }
   }
 
