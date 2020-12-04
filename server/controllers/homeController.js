@@ -1,12 +1,4 @@
 const AWS = require("aws-sdk");
-const s3 = new AWS.S3({
-  endpoint: `s3-ap-southeast-1.amazonaws.com`,// Put you region
-  accessKeyId: `${process.env.S3_ACCESS_KEY}`, // Put you accessKeyId
-  secretAccessKey: `${process.env.S3_SECRET_KEY}`,
-  Bucket: `${process.env.S3_BUCKET_NAME}`, // Put your bucket name
-  signatureVersion: 'v4',
-  region: `ap-southeast-1` // Put you region
-});
 const axios = require('axios');
 const xlsx = require('xlsx');
 
@@ -180,6 +172,15 @@ module.exports = {
 
     const now     = `${year}-${month}-${day}_${hour}-${min}-${second}`;
     const fileName = now + '.xlsx';
+
+    const s3 = new AWS.S3({
+      endpoint: `s3-${process.env.S3_REGION}.amazonaws.com`,// Put you region
+      accessKeyId: process.env.S3_ACCESS_KEY, // Put you accessKeyId
+      secretAccessKey: process.env.S3_SECRET_KEY,
+      Bucket: process.env.S3_BUCKET_NAME, // Put your bucket name
+      signatureVersion: 'v4',
+      region: process.env.S3_REGION // Put you region
+    });
 
     return s3.getSignedUrl('putObject', {
       Bucket: 'ems-excel-parser',
