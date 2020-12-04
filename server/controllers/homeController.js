@@ -1,6 +1,6 @@
 const AWS = require("aws-sdk");
 const s3 = new AWS.S3({
-  endpoint: `s3-${process.env.S3_REGION}.amazonaws.com`,// Put you region
+  endpoint: `s3-`+`${process.env.S3_REGION}`+`.amazonaws.com`,// Put you region
   accessKeyId: `${process.env.S3_ACCESS_KEY}`, // Put you accessKeyId
   secretAccessKey: `${process.env.S3_SECRET_KEY}`,
   Bucket: `${process.env.S3_BUCKET_NAME}`, // Put your bucket name
